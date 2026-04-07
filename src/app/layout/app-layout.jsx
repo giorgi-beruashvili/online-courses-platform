@@ -1,5 +1,7 @@
 import { Outlet } from "react-router-dom";
 import { Navbar } from "../../shared/components/navbar/navbar";
+import { ModalRoot } from "../../shared/components/modal/modal-root";
+import { EnrolledCoursesSidebar } from "../../features/enrollments/components/enrolled-courses-sidebar";
 
 export function AppLayout() {
   return (
@@ -11,6 +13,9 @@ export function AppLayout() {
           <Outlet />
         </div>
       </main>
+
+      <ModalRoot />
+      <EnrolledCoursesSidebar />
     </div>
   );
 }
