@@ -5,24 +5,68 @@ import { ROUTES } from "../shared/constants/routes";
 import { useAuth } from "../app/providers/auth-provider";
 import { useModal } from "../app/providers/modal-provider";
 
+const featuredCourses = [
+  {
+    id: 1,
+    title: "React Fundamentals",
+    description:
+      "Learn the basics of modern React and build interactive user interfaces.",
+    instructor: "Nina Carter",
+    price: "$120",
+  },
+  {
+    id: 2,
+    title: "UI/UX Design Essentials",
+    description:
+      "Master core design principles and create user-friendly digital experiences.",
+    instructor: "Alex Morgan",
+    price: "$90",
+  },
+  {
+    id: 3,
+    title: "Python Basics",
+    description:
+      "Start programming with Python and understand core software development concepts.",
+    instructor: "David Stone",
+    price: "$110",
+  },
+];
+
 export function DashboardPage() {
   const { isAuthenticated } = useAuth();
   const { openLogin } = useModal();
 
   return (
     <div className="stack-lg">
-      <section className="hero-card">
-        <span className="eyebrow">Dashboard</span>
-        <h1>Start Learning Today</h1>
-        <p>
-          Day 2 focus: validated forms, cleaner structure, and a static
-          dashboard hero that stays aligned with the brief.
-        </p>
+      <section className="section-card">
+        <div className="section-header">
+          <h1>Start Learning Today</h1>
+        </div>
 
-        <div className="button-row">
-          <Link to={ROUTES.COURSES} className="button button-primary">
-            Browse Courses
-          </Link>
+        <div className="featured-grid">
+          {featuredCourses.map((course) => (
+            <article key={course.id} className="featured-card">
+              <div className="featured-image-placeholder">Course Image</div>
+
+              <h3>{course.title}</h3>
+              <p>{course.description}</p>
+
+              <p>
+                <strong>Instructor:</strong> {course.instructor}
+              </p>
+
+              <p>
+                <strong>Starting from:</strong> {course.price}
+              </p>
+
+              <Link
+                to={ROUTES.courseDetails(course.id)}
+                className="button button-primary"
+              >
+                View Details
+              </Link>
+            </article>
+          ))}
         </div>
       </section>
 
