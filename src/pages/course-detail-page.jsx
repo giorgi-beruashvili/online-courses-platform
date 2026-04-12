@@ -21,7 +21,7 @@ export function CourseDetailPage() {
       return;
     }
 
-    toast.success("Day 2+ will connect the real enrollment flow here.");
+    toast.success("Day 3+ will connect the real enrollment flow here.");
   };
 
   return (
@@ -30,28 +30,28 @@ export function CourseDetailPage() {
         <span className="eyebrow">Course Detail</span>
         <h1>Course: {courseId}</h1>
         <p>
-          Day 1 note: this is a public detail-page foundation. It does not
-          assume enrollment exists yet. Future enrolled vs not-enrolled
-          branching will be API-driven later.
+          Day 2 note: this page remains public. It still does not assume
+          enrollment exists. Future enrolled vs not-enrolled branching will be
+          API-driven later.
         </p>
 
         <div className="detail-image-placeholder">Course Image Placeholder</div>
 
         <div className="stack">
           <div className="info-card">
-            <strong>Category:</strong> ---
+            <strong>Category:</strong> Development
           </div>
           <div className="info-card">
-            <strong>Topic:</strong> ---
+            <strong>Topic:</strong> React
           </div>
           <div className="info-card">
-            <strong>Instructor:</strong> ---
+            <strong>Instructor:</strong> Nina Carter
           </div>
           <div className="info-card">
-            <strong>Duration:</strong> ---
+            <strong>Duration:</strong> 6 weeks
           </div>
           <div className="info-card">
-            <strong>Base Price:</strong> $---
+            <strong>Base Price:</strong> $120
           </div>
         </div>
       </section>
@@ -66,7 +66,7 @@ export function CourseDetailPage() {
 
           <div className="summary-card">
             <p>
-              <strong>Base Price:</strong> $---
+              <strong>Base Price:</strong> $120
             </p>
             <p>
               <strong>Session Type Modifier:</strong> ---

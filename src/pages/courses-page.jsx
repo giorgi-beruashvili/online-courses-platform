@@ -1,6 +1,14 @@
 import { Link } from "react-router-dom";
 import { ROUTES } from "../shared/constants/routes";
 
+const mockCourses = Array.from({ length: 6 }).map((_, index) => ({
+  id: index + 1,
+  title: `Course ${index + 1}`,
+  category: "Development",
+  duration: "6 weeks",
+  price: "$120",
+}));
+
 export function CoursesPage() {
   return (
     <div className="catalog-layout">
@@ -9,46 +17,62 @@ export function CoursesPage() {
 
         <div className="filter-section">
           <h3>Categories</h3>
-          <label>
+          <label className="filter-row">
             <input type="checkbox" disabled /> Development
           </label>
-          <label>
+          <label className="filter-row">
             <input type="checkbox" disabled /> Design
           </label>
-          <label>
+          <label className="filter-row">
             <input type="checkbox" disabled /> Business
           </label>
         </div>
 
         <div className="filter-section">
           <h3>Topics</h3>
-          <label>
+          <label className="filter-row">
             <input type="checkbox" disabled /> React
           </label>
-          <label>
+          <label className="filter-row">
             <input type="checkbox" disabled /> Python
           </label>
-          <label>
+          <label className="filter-row">
             <input type="checkbox" disabled /> UI/UX
           </label>
         </div>
 
         <div className="filter-section">
           <h3>Instructors</h3>
-          <label>
-            <input type="checkbox" disabled /> Nina Carter
+
+          <label className="filter-person-row">
+            <span className="mini-avatar" />
+            <input type="checkbox" disabled />
+            <span>Nina Carter</span>
           </label>
-          <label>
-            <input type="checkbox" disabled /> Alex Morgan
+
+          <label className="filter-person-row">
+            <span className="mini-avatar" />
+            <input type="checkbox" disabled />
+            <span>Alex Morgan</span>
           </label>
-          <label>
-            <input type="checkbox" disabled /> David Stone
+
+          <label className="filter-person-row">
+            <span className="mini-avatar" />
+            <input type="checkbox" disabled />
+            <span>David Stone</span>
           </label>
         </div>
 
+        <div className="stack">
+          <button type="button" className="button button-secondary" disabled>
+            Clear All Filters
+          </button>
+          <p>0 filters active</p>
+        </div>
+
         <div className="state-note">
-          Day 1 note: Categories/Topics dependency is not implemented yet. This
-          page only establishes the structural placeholder.
+          Day 2 note: Categories/Topics dependency is still not implemented.
+          Today only the structure is required.
         </div>
       </aside>
 
@@ -62,39 +86,25 @@ export function CoursesPage() {
             <option>Title: A-Z</option>
           </select>
 
-          <p>Showing placeholder courses</p>
+          <p>Showing 6 placeholder courses</p>
         </div>
 
         <div className="courses-grid">
-          <Link to={ROUTES.courseDetails(1)} className="course-card">
-            <div className="course-image-placeholder">Course Image</div>
-            <p>
-              <strong>Starting from:</strong> $---
-            </p>
-            <h3>React Fundamentals</h3>
-            <p>Development</p>
-            <p>6 weeks</p>
-          </Link>
-
-          <div className="course-card">
-            <div className="course-image-placeholder">Course Image</div>
-            <p>
-              <strong>Starting from:</strong> $---
-            </p>
-            <h3>Placeholder Course</h3>
-            <p>Category</p>
-            <p>Duration</p>
-          </div>
-
-          <div className="course-card">
-            <div className="course-image-placeholder">Course Image</div>
-            <p>
-              <strong>Starting from:</strong> $---
-            </p>
-            <h3>Placeholder Course</h3>
-            <p>Category</p>
-            <p>Duration</p>
-          </div>
+          {mockCourses.map((course) => (
+            <Link
+              key={course.id}
+              to={ROUTES.courseDetails(course.id)}
+              className="course-card"
+            >
+              <div className="course-image-placeholder">Course Image</div>
+              <p>
+                <strong>Starting from:</strong> {course.price}
+              </p>
+              <h3>{course.title}</h3>
+              <p>{course.category}</p>
+              <p>{course.duration}</p>
+            </Link>
+          ))}
         </div>
 
         <div className="pagination-shell">
