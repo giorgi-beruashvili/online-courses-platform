@@ -1,13 +1,17 @@
 import toast from "react-hot-toast";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+
 import { BaseModal } from "../../../shared/components/modal/base-modal";
 import { useModal } from "../../../app/providers/modal-provider";
 import { useAuth } from "../../../app/providers/auth-provider";
+import { loginSchema } from "../schemas/login.schema";
 
-function createDemoLoginUser() {
+function createDemoLoginUser(email) {
   return {
     id: 1,
-    username: "demo_user",
-    email: "demo@example.com",
+    username: email.split("@")[0],
+    email,
     avatar: "",
     fullName: "",
     mobileNumber: "",
@@ -20,14 +24,41 @@ export function LoginModal({ open }) {
   const { closeModal, openRegister } = useModal();
   const { login } = useAuth();
 
-  const handleDemoLogin = () => {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting, isValid },
+    reset,
+  } = useForm({
+    resolver: zodResolver(loginSchema),
+    mode: "onBlur",
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
+
+  const onSubmit = async (values) => {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
     login({
       token: "demo-token",
-      user: createDemoLoginUser(),
+      user: createDemoLoginUser(values.email),
     });
 
+    toast.success("Logged in successfully");
+    reset();
     closeModal();
-    toast.success("Logged in with demo account");
+  };
+
+  const handleClose = () => {
+    reset();
+    closeModal();
+  };
+
+  const handleSwitchToRegister = () => {
+    reset();
+    openRegister();
   };
 
   return (
@@ -35,20 +66,24 @@ export function LoginModal({ open }) {
       open={open}
       onOpenChange={(nextOpen) => {
         if (!nextOpen) {
-          closeModal();
+          handleClose();
         }
       }}
       title="Log In"
-      description="Day 1 foundation modal. Real validation and API submit will be added later."
+      description="Day 2: real form UX and validation. API submit will come later."
     >
-      <div className="stack">
+      <form className="stack" onSubmit={handleSubmit(onSubmit)}>
         <label className="field">
           <span className="field-label">Email</span>
           <input
             className="input"
             type="email"
             placeholder="name@example.com"
+            {...register("email")}
           />
+          {errors.email ? (
+            <span className="field-error">{errors.email.message}</span>
+          ) : null}
         </label>
 
         <label className="field">
@@ -57,25 +92,30 @@ export function LoginModal({ open }) {
             className="input"
             type="password"
             placeholder="Enter your password"
+            {...register("password")}
           />
+          {errors.password ? (
+            <span className="field-error">{errors.password.message}</span>
+          ) : null}
         </label>
 
         <button
-          type="button"
+          type="submit"
           className="button button-primary"
-          onClick={handleDemoLogin}
+          disabled={isSubmitting || !isValid}
         >
-          Log In as Demo User
+          {isSubmitting ? "Logging In..." : "Log In"}
         </button>
 
         <button
           type="button"
           className="button button-secondary"
-          onClick={openRegister}
+          disabled={isSubmitting}
+          onClick={handleSwitchToRegister}
         >
           Don&apos;t have an account? Sign Up
         </button>
-      </div>
+      </form>
     </BaseModal>
   );
 }
