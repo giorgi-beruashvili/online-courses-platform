@@ -1,40 +1,28 @@
 import { Link } from "react-router-dom";
 import { Lock } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
 import { ROUTES } from "../shared/constants/routes";
 import { useAuth } from "../app/providers/auth-provider";
 import { useModal } from "../app/providers/modal-provider";
-
-const featuredCourses = [
-  {
-    id: 1,
-    title: "React Fundamentals",
-    description:
-      "Learn the basics of modern React and build interactive user interfaces.",
-    instructor: "Nina Carter",
-    price: "$120",
-  },
-  {
-    id: 2,
-    title: "UI/UX Design Essentials",
-    description:
-      "Master core design principles and create user-friendly digital experiences.",
-    instructor: "Alex Morgan",
-    price: "$90",
-  },
-  {
-    id: 3,
-    title: "Python Basics",
-    description:
-      "Start programming with Python and understand core software development concepts.",
-    instructor: "David Stone",
-    price: "$110",
-  },
-];
+import { QUERY_KEYS } from "../shared/api/query-keys";
+import { getFeaturedCourses } from "../features/courses/api/courses.api";
+import { Loader } from "../shared/components/ui/loader";
+import { ErrorState } from "../shared/components/ui/error-state";
+import { EmptyState } from "../shared/components/ui/empty-state";
 
 export function DashboardPage() {
   const { isAuthenticated } = useAuth();
   const { openLogin } = useModal();
+
+  const {
+    data: featuredCourses = [],
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: QUERY_KEYS.FEATURED_COURSES,
+    queryFn: getFeaturedCourses,
+  });
 
   return (
     <div className="stack-lg">
@@ -43,31 +31,46 @@ export function DashboardPage() {
           <h1>Start Learning Today</h1>
         </div>
 
-        <div className="featured-grid">
-          {featuredCourses.map((course) => (
-            <article key={course.id} className="featured-card">
-              <div className="featured-image-placeholder">Course Image</div>
+        {isLoading ? (
+          <Loader label="Loading featured courses..." />
+        ) : isError ? (
+          <ErrorState title="Failed to load featured courses" />
+        ) : featuredCourses.length === 0 ? (
+          <EmptyState title="No featured courses found" />
+        ) : (
+          <div className="featured-grid">
+            {featuredCourses.slice(0, 3).map((course) => (
+              <article key={course.id} className="featured-card">
+                {course.image ? (
+                  <img
+                    src={course.image}
+                    alt={course.title}
+                    className="card-image"
+                  />
+                ) : (
+                  <div className="featured-image-placeholder">Course Image</div>
+                )}
 
-              <h3>{course.title}</h3>
-              <p>{course.description}</p>
+                <h3>{course.title}</h3>
+                <p>{course.description}</p>
+                <p>
+                  <strong>Instructor:</strong>{" "}
+                  {course.instructor?.name || "Unknown Instructor"}
+                </p>
+                <p>
+                  <strong>Starting from:</strong> ${course.basePrice}
+                </p>
 
-              <p>
-                <strong>Instructor:</strong> {course.instructor}
-              </p>
-
-              <p>
-                <strong>Starting from:</strong> {course.price}
-              </p>
-
-              <Link
-                to={ROUTES.courseDetails(course.id)}
-                className="button button-primary"
-              >
-                View Details
-              </Link>
-            </article>
-          ))}
-        </div>
+                <Link
+                  to={ROUTES.courseDetails(course.id)}
+                  className="button button-primary"
+                >
+                  View Details
+                </Link>
+              </article>
+            ))}
+          </div>
+        )}
       </section>
 
       {!isAuthenticated ? (
