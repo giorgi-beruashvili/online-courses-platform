@@ -1,12 +1,17 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useForm } from "react-hook-form";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { BaseModal } from "../../../shared/components/modal/base-modal";
 import { useModal } from "../../../app/providers/modal-provider";
 import { useAuth } from "../../../app/providers/auth-provider";
+import { QUERY_KEYS } from "../../../shared/api/query-keys";
+import { Loader } from "../../../shared/components/ui/loader";
+import { ErrorState } from "../../../shared/components/ui/error-state";
 import { profileSchema } from "../schemas/profile.schema";
+import { getMe, updateProfile } from "../api/profile.api";
 
 const allowedImageTypes = ["image/jpeg", "image/png", "image/webp"];
 const ageOptions = Array.from({ length: 105 }, (_, index) =>
@@ -24,9 +29,23 @@ function readFileAsDataUrl(file) {
   });
 }
 
+function getApiErrorMessage(error, fallbackMessage) {
+  const validationErrors = error?.response?.data?.errors;
+  const firstValidationEntry = validationErrors
+    ? Object.values(validationErrors)[0]
+    : null;
+
+  if (Array.isArray(firstValidationEntry) && firstValidationEntry[0]) {
+    return firstValidationEntry[0];
+  }
+
+  return error?.response?.data?.message || fallbackMessage;
+}
+
 export function ProfileModal({ open }) {
   const { closeModal } = useModal();
   const { user, setUser, isAuthenticated } = useAuth();
+  const queryClient = useQueryClient();
   const [avatarPreview, setAvatarPreview] = useState("");
 
   const {
@@ -47,23 +66,36 @@ export function ProfileModal({ open }) {
     },
   });
 
+  const {
+    data: profileData,
+    isLoading: isLoadingProfile,
+    isError: isProfileError,
+    error: profileError,
+    refetch: refetchProfile,
+  } = useQuery({
+    queryKey: QUERY_KEYS.ME,
+    queryFn: () => getMe(),
+    enabled: open && isAuthenticated,
+  });
+
   useEffect(() => {
-    if (!open || !user) return;
+    if (!open || !profileData) return;
 
     reset({
-      fullName: user.fullName || "",
-      email: user.email || "",
-      mobileNumber: user.mobileNumber || "",
-      age: user.age ? String(user.age) : "",
+      fullName: profileData.fullName || "",
+      email: profileData.email || "",
+      mobileNumber: profileData.mobileNumber || "",
+      age: profileData.age ? String(profileData.age) : "",
       avatar: undefined,
     });
-  }, [open, user, reset]);
-
-  const displayedAvatarPreview = avatarPreview || user?.avatar || "";
+  }, [open, profileData, reset, setUser]);
 
   if (!isAuthenticated) {
     return null;
   }
+
+  const displayedAvatarPreview =
+    avatarPreview || profileData?.avatar || user?.avatar || "";
 
   const handleAvatarChange = async (event) => {
     const file = event.target.files?.[0];
@@ -75,7 +107,7 @@ export function ProfileModal({ open }) {
     });
 
     if (!file) {
-      setAvatarPreview(user?.avatar || "");
+      setAvatarPreview(profileData?.avatar || user?.avatar || "");
       return;
     }
 
@@ -94,36 +126,74 @@ export function ProfileModal({ open }) {
   };
 
   const onSubmit = async (values) => {
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    try {
+      await updateProfile(values);
 
-    setUser({
-      ...user,
-      fullName: values.fullName,
-      mobileNumber: values.mobileNumber,
-      age: values.age,
-      avatar: avatarPreview || user?.avatar || "",
-      profileComplete: true,
-    });
+      const me = await getMe();
+      setUser(me);
+      queryClient.setQueryData(QUERY_KEYS.ME, me);
 
-    toast.success("Profile updated successfully");
-    closeModal();
+      toast.success("Profile updated successfully");
+      closeModal();
+    } catch (error) {
+      toast.error(
+        getApiErrorMessage(error, "Profile update failed. Please try again."),
+      );
+    }
   };
 
-  const handleClose = () => {
-    setAvatarPreview("");
-    closeModal();
-  };
+  if (isLoadingProfile) {
+    return (
+      <BaseModal
+        open={open}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) closeModal();
+        }}
+        title="Your Profile"
+        description="Loading current profile data from GET /me."
+      >
+        <Loader label="Loading profile..." />
+      </BaseModal>
+    );
+  }
+
+  if (isProfileError) {
+    return (
+      <BaseModal
+        open={open}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) closeModal();
+        }}
+        title="Your Profile"
+        description="Failed to load profile."
+      >
+        <ErrorState
+          title="Failed to load profile"
+          message={getApiErrorMessage(profileError, "Please try again.")}
+          action={
+            <button
+              type="button"
+              className="button button-primary"
+              onClick={refetchProfile}
+            >
+              Try Again
+            </button>
+          }
+        />
+      </BaseModal>
+    );
+  }
 
   return (
     <BaseModal
       open={open}
       onOpenChange={(nextOpen) => {
         if (!nextOpen) {
-          handleClose();
+          closeModal();
         }
       }}
       title="Your Profile"
-      description="Day 2: validated profile form with read-only email and optional avatar preparation."
+      description="Day 3: canonical profile data from GET /me with mapped FormData update."
     >
       <form className="stack" onSubmit={handleSubmit(onSubmit)}>
         <label className="field">
@@ -170,10 +240,8 @@ export function ProfileModal({ open }) {
 
         <label className="field">
           <span className="field-label">Age</span>
-          <select className="input" defaultValue="" {...register("age")}>
-            <option value="" disabled>
-              Select age
-            </option>
+          <select className="input" {...register("age")}>
+            <option value="">Select age</option>
             {ageOptions.map((age) => (
               <option key={age} value={age}>
                 {age}

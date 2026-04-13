@@ -1,12 +1,16 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { useForm } from "react-hook-form";
+import { useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { BaseModal } from "../../../shared/components/modal/base-modal";
 import { useModal } from "../../../app/providers/modal-provider";
 import { useAuth } from "../../../app/providers/auth-provider";
+import { QUERY_KEYS } from "../../../shared/api/query-keys";
 import { registrationSchema } from "../schemas/registration.schema";
+import { registerUser } from "../api/auth.api";
+import { getMe } from "../../profile/api/profile.api";
 
 const allowedImageTypes = ["image/jpeg", "image/png", "image/webp"];
 const totalSteps = 3;
@@ -22,9 +26,23 @@ function readFileAsDataUrl(file) {
   });
 }
 
+function getApiErrorMessage(error, fallbackMessage) {
+  const validationErrors = error?.response?.data?.errors;
+  const firstValidationEntry = validationErrors
+    ? Object.values(validationErrors)[0]
+    : null;
+
+  if (Array.isArray(firstValidationEntry) && firstValidationEntry[0]) {
+    return firstValidationEntry[0];
+  }
+
+  return error?.response?.data?.message || fallbackMessage;
+}
+
 export function RegistrationModal({ open }) {
   const { closeModal, openLogin } = useModal();
-  const { login } = useAuth();
+  const { login, setUser } = useAuth();
+  const queryClient = useQueryClient();
   const [avatarPreview, setAvatarPreview] = useState("");
   const [step, setStep] = useState(1);
 
@@ -101,25 +119,44 @@ export function RegistrationModal({ open }) {
   };
 
   const onSubmit = async (values) => {
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    try {
+      const formData = new FormData();
 
-    login({
-      token: "demo-registered-token",
-      user: {
-        id: 2,
-        username: values.username,
-        email: values.email,
-        avatar: avatarPreview || "",
-        fullName: "",
-        mobileNumber: "",
-        age: null,
-        profileComplete: false,
-      },
-    });
+      formData.append("username", values.username);
+      formData.append("email", values.email);
+      formData.append("password", values.password);
+      formData.append("password_confirmation", values.confirmPassword);
 
-    toast.success("Registered successfully");
-    resetFormState();
-    closeModal();
+      if (values.avatar instanceof File) {
+        formData.append("avatar", values.avatar);
+      }
+
+      const authPayload = await registerUser(formData);
+
+      login({
+        token: authPayload.token,
+        user: authPayload.user,
+      });
+
+      try {
+        const me = await getMe(authPayload.token);
+        setUser(me);
+        queryClient.setQueryData(QUERY_KEYS.ME, me);
+      } catch (meError) {
+        console.error(
+          "Failed to hydrate user from GET /me after register",
+          meError,
+        );
+      }
+
+      toast.success("Registered successfully");
+      resetFormState();
+      closeModal();
+    } catch (error) {
+      toast.error(
+        getApiErrorMessage(error, "Registration failed. Please try again."),
+      );
+    }
   };
 
   const handleClose = () => {

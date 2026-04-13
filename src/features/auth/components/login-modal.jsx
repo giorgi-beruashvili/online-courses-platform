@@ -1,28 +1,33 @@
 import toast from "react-hot-toast";
 import { useForm } from "react-hook-form";
+import { useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { BaseModal } from "../../../shared/components/modal/base-modal";
 import { useModal } from "../../../app/providers/modal-provider";
 import { useAuth } from "../../../app/providers/auth-provider";
+import { QUERY_KEYS } from "../../../shared/api/query-keys";
 import { loginSchema } from "../schemas/login.schema";
+import { loginUser } from "../api/auth.api";
+import { getMe } from "../../profile/api/profile.api";
 
-function createDemoLoginUser(email) {
-  return {
-    id: 1,
-    username: email.split("@")[0],
-    email,
-    avatar: "",
-    fullName: "",
-    mobileNumber: "",
-    age: null,
-    profileComplete: false,
-  };
+function getApiErrorMessage(error, fallbackMessage) {
+  const validationErrors = error?.response?.data?.errors;
+  const firstValidationEntry = validationErrors
+    ? Object.values(validationErrors)[0]
+    : null;
+
+  if (Array.isArray(firstValidationEntry) && firstValidationEntry[0]) {
+    return firstValidationEntry[0];
+  }
+
+  return error?.response?.data?.message || fallbackMessage;
 }
 
 export function LoginModal({ open }) {
   const { closeModal, openRegister } = useModal();
-  const { login } = useAuth();
+  const { login, setUser } = useAuth();
+  const queryClient = useQueryClient();
 
   const {
     register,
@@ -39,16 +44,31 @@ export function LoginModal({ open }) {
   });
 
   const onSubmit = async (values) => {
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    try {
+      const authPayload = await loginUser(values);
 
-    login({
-      token: "demo-token",
-      user: createDemoLoginUser(values.email),
-    });
+      login({
+        token: authPayload.token,
+        user: authPayload.user,
+      });
 
-    toast.success("Logged in successfully");
-    reset();
-    closeModal();
+      try {
+        const me = await getMe(authPayload.token);
+        setUser(me);
+        queryClient.setQueryData(QUERY_KEYS.ME, me);
+      } catch (meError) {
+        console.error(
+          "Failed to hydrate user from GET /me after login",
+          meError,
+        );
+      }
+
+      toast.success("Logged in successfully");
+      reset();
+      closeModal();
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Login failed. Please try again."));
+    }
   };
 
   const handleClose = () => {
@@ -70,7 +90,7 @@ export function LoginModal({ open }) {
         }
       }}
       title="Log In"
-      description="Day 2: real form UX and validation. API submit will come later."
+      description="Day 3: real API submit with canonical user hydration from GET /me."
     >
       <form className="stack" onSubmit={handleSubmit(onSubmit)}>
         <label className="field">
