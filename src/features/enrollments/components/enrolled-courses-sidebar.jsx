@@ -1,8 +1,15 @@
 import { Link } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+
+import { ROUTES } from "../../../shared/constants/routes";
 import { useModal } from "../../../app/providers/modal-provider";
 import { useAuth } from "../../../app/providers/auth-provider";
-import { ROUTES } from "../../../shared/constants/routes";
+import { QUERY_KEYS } from "../../../shared/api/query-keys";
+import { getEnrollments } from "../api/enrollments.api";
+import { Loader } from "../../../shared/components/ui/loader";
+import { ErrorState } from "../../../shared/components/ui/error-state";
+import { EmptyState } from "../../../shared/components/ui/empty-state";
 
 export function EnrolledCoursesSidebar() {
   const { isEnrolledSidebarOpen, closeEnrolledSidebar, openLogin } = useModal();
@@ -14,6 +21,28 @@ export function EnrolledCoursesSidebar() {
       openLogin();
     }
   }, [isEnrolledSidebarOpen, isAuthenticated, closeEnrolledSidebar, openLogin]);
+
+  const {
+    data: enrollments = [],
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: QUERY_KEYS.ENROLLMENTS,
+    queryFn: getEnrollments,
+    enabled: isEnrolledSidebarOpen && isAuthenticated,
+  });
+
+  const summary = useMemo(() => {
+    const totalCombinedPrice = enrollments.reduce(
+      (sum, item) => sum + Number(item.totalPrice ?? 0),
+      0,
+    );
+
+    return {
+      totalCombinedPrice,
+      totalCount: enrollments.length,
+    };
+  }, [enrollments]);
 
   if (!isEnrolledSidebarOpen || !isAuthenticated) {
     return null;
@@ -35,29 +64,85 @@ export function EnrolledCoursesSidebar() {
           </button>
         </div>
 
-        <div className="stack">
-          <div className="empty-state-card">
-            <h3>Your learning journey starts here!</h3>
-            <p>Real enrolled data and progress will be connected later.</p>
+        {isLoading ? (
+          <Loader label="Loading enrolled courses..." />
+        ) : isError ? (
+          <ErrorState title="Failed to load enrolled courses" />
+        ) : enrollments.length === 0 ? (
+          <EmptyState
+            title="Your learning journey starts here!"
+            message="Browse courses to get started."
+            action={
+              <Link
+                to={ROUTES.COURSES}
+                className="button button-primary"
+                onClick={closeEnrolledSidebar}
+              >
+                Browse Courses
+              </Link>
+            }
+          />
+        ) : (
+          <div className="stack">
+            <div className="summary-card">
+              <p>
+                <strong>Total Enrolled Courses:</strong> {summary.totalCount}
+              </p>
+              <p>
+                <strong>Total Price:</strong> ${summary.totalCombinedPrice}
+              </p>
+            </div>
 
-            <Link
-              to={ROUTES.COURSES}
-              className="button button-primary"
-              onClick={closeEnrolledSidebar}
-            >
-              Browse Courses
-            </Link>
-          </div>
+            <div className="sidebar-list">
+              {enrollments.map((enrollment) => (
+                <div key={enrollment.id} className="sidebar-item-card">
+                  <div className="sidebar-item-top">
+                    {enrollment.course?.image ? (
+                      <img
+                        src={enrollment.course.image}
+                        alt={enrollment.course.title}
+                        className="sidebar-item-image"
+                      />
+                    ) : (
+                      <div className="sidebar-item-image placeholder" />
+                    )}
 
-          <div className="summary-card">
-            <p>
-              <strong>Total Enrolled Courses:</strong> 0
-            </p>
-            <p>
-              <strong>Total Price:</strong> $0
-            </p>
+                    <div className="stack">
+                      <strong>
+                        {enrollment.course?.title || "Untitled Course"}
+                      </strong>
+                      <span>Final Price: ${enrollment.totalPrice}</span>
+                      <span>
+                        Weekly Schedule:{" "}
+                        {enrollment.schedule.weeklySchedule?.label || "—"}
+                      </span>
+                      <span>
+                        Time Slot: {enrollment.schedule.timeSlot?.label || "—"}
+                      </span>
+                      <span>
+                        Session Type:{" "}
+                        {enrollment.schedule.sessionType?.name || "—"}
+                      </span>
+                      {enrollment.location ? (
+                        <span>Location: {enrollment.location}</span>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="stack">
+                    <span>Progress: {enrollment.progress}%</span>
+                    <div className="progress-bar-shell">
+                      <div
+                        className="progress-bar-fill"
+                        style={{ width: `${enrollment.progress}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </aside>
     </>
   );

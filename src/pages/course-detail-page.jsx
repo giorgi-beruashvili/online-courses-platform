@@ -1,19 +1,15 @@
-import toast from "react-hot-toast";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
 import { ROUTES } from "../shared/constants/routes";
-import { useAuth } from "../app/providers/auth-provider";
-import { useModal } from "../app/providers/modal-provider";
 import { QUERY_KEYS } from "../shared/api/query-keys";
 import { getCourseDetails } from "../features/courses/api/courses.api";
 import { Loader } from "../shared/components/ui/loader";
 import { ErrorState } from "../shared/components/ui/error-state";
+import { CourseSchedulePanel } from "../features/courses/components/course-schedule-panel";
 
 export function CourseDetailPage() {
   const { courseId } = useParams();
-  const { isAuthenticated, isProfileComplete } = useAuth();
-  const { openLogin, openProfile } = useModal();
 
   const {
     data: course,
@@ -25,21 +21,6 @@ export function CourseDetailPage() {
     queryFn: () => getCourseDetails(courseId),
     enabled: Boolean(courseId),
   });
-
-  const handleProtectedEnroll = () => {
-    if (!isAuthenticated) {
-      openLogin();
-      return;
-    }
-
-    if (!isProfileComplete) {
-      toast.error("Please complete your profile to enroll in courses");
-      openProfile();
-      return;
-    }
-
-    toast.success("Day 4 will connect the real enrollment flow here.");
-  };
 
   if (isLoading) {
     return <Loader label="Loading course details..." />;
@@ -66,6 +47,8 @@ export function CourseDetailPage() {
       />
     );
   }
+
+  const enrollment = course.enrollment;
 
   return (
     <div className="course-detail-layout">
@@ -104,49 +87,74 @@ export function CourseDetailPage() {
           <div className="info-card">
             <strong>Base Price:</strong> ${course.basePrice}
           </div>
-
-          {course.enrollment ? (
-            <div className="info-card">
-              <strong>Enrollment:</strong> Enrollment data exists for this user.
-              Full enrolled/not-enrolled UI branching will be added later.
-            </div>
-          ) : (
-            <div className="state-note">
-              Day 3 note: no enrollment is assumed for guests or not-enrolled
-              users.
-            </div>
-          )}
         </div>
       </section>
 
       <aside className="section-card">
-        <h2>Enrollment Panel</h2>
+        {!enrollment ? (
+          <>
+            <h2>Enrollment Panel</h2>
 
-        <div className="stack">
-          <div className="info-card">Weekly Schedule selector comes later</div>
-          <div className="info-card">Time Slot selector comes later</div>
-          <div className="info-card">Session Type selector comes later</div>
+            <div className="state-note">
+              Schedule browsing is public on Day 4. Only the final enroll submit
+              action is protected.
+            </div>
 
-          <div className="summary-card">
-            <p>
-              <strong>Base Price:</strong> ${course.basePrice}
-            </p>
-            <p>
-              <strong>Session Type Modifier:</strong> ---
-            </p>
-            <p>
-              <strong>Total Price:</strong> $---
-            </p>
-          </div>
-        </div>
+            <CourseSchedulePanel
+              courseId={course.id}
+              basePrice={course.basePrice}
+              onEnrollSuccess={() => {}}
+            />
+          </>
+        ) : (
+          <>
+            <div className="enrolled-badge">Enrolled ✓</div>
 
-        <button
-          type="button"
-          className="button button-primary"
-          onClick={handleProtectedEnroll}
-        >
-          Enroll Now
-        </button>
+            <div className="stack">
+              <div className="info-card">
+                <strong>Selected Weekly Schedule:</strong>{" "}
+                {enrollment.schedule.weeklySchedule?.label || "—"}
+              </div>
+
+              <div className="info-card">
+                <strong>Selected Time Slot:</strong>{" "}
+                {enrollment.schedule.timeSlot?.label || "—"}
+              </div>
+
+              <div className="info-card">
+                <strong>Selected Session Type:</strong>{" "}
+                {enrollment.schedule.sessionType?.name || "—"}
+              </div>
+
+              {enrollment.location ? (
+                <div className="info-card">
+                  <strong>Location:</strong> {enrollment.location}
+                </div>
+              ) : null}
+
+              <div className="summary-card">
+                <p>
+                  <strong>Total Price:</strong> ${enrollment.totalPrice}
+                </p>
+                <p>
+                  <strong>Enrollment ID:</strong> {enrollment.id}
+                </p>
+              </div>
+
+              <div>
+                <p>
+                  <strong>Course Progress:</strong> {enrollment.progress}%
+                </p>
+                <div className="progress-bar-shell">
+                  <div
+                    className="progress-bar-fill"
+                    style={{ width: `${enrollment.progress}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </aside>
     </div>
   );
