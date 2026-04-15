@@ -11,6 +11,13 @@ import { Loader } from "../../../shared/components/ui/loader";
 import { ErrorState } from "../../../shared/components/ui/error-state";
 import { EmptyState } from "../../../shared/components/ui/empty-state";
 
+function formatSessionTypeName(name = "") {
+  if (name === "in_person") return "In-person";
+  if (name === "online") return "Online";
+  if (name === "hybrid") return "Hybrid";
+  return name || "—";
+}
+
 export function EnrolledCoursesSidebar() {
   const { isEnrolledSidebarOpen, closeEnrolledSidebar, openLogin } = useModal();
   const { isAuthenticated } = useAuth();
@@ -94,52 +101,83 @@ export function EnrolledCoursesSidebar() {
             </div>
 
             <div className="sidebar-list">
-              {enrollments.map((enrollment) => (
-                <div key={enrollment.id} className="sidebar-item-card">
-                  <div className="sidebar-item-top">
-                    {enrollment.course?.image ? (
-                      <img
-                        src={enrollment.course.image}
-                        alt={enrollment.course.title}
-                        className="sidebar-item-image"
-                      />
-                    ) : (
-                      <div className="sidebar-item-image placeholder" />
-                    )}
+              {enrollments.map((enrollment) => {
+                const isCompleted =
+                  Boolean(enrollment.completedAt) ||
+                  Number(enrollment.progress) >= 100;
+
+                return (
+                  <div key={enrollment.id} className="sidebar-item-card">
+                    <div className="sidebar-item-top">
+                      {enrollment.course?.image ? (
+                        <img
+                          src={enrollment.course.image}
+                          alt={enrollment.course.title}
+                          className="sidebar-item-image"
+                        />
+                      ) : (
+                        <div className="sidebar-item-image placeholder" />
+                      )}
+
+                      <div className="stack">
+                        <strong>
+                          {enrollment.course?.title || "Untitled Course"}
+                        </strong>
+
+                        {enrollment.quantity > 1 ? (
+                          <span>Quantity: {enrollment.quantity}</span>
+                        ) : null}
+
+                        <span>Final Price: ${enrollment.totalPrice}</span>
+
+                        <span>
+                          Weekly Schedule:{" "}
+                          {enrollment.schedule.weeklySchedule?.label || "—"}
+                        </span>
+
+                        <span>
+                          Time Slot:{" "}
+                          {enrollment.schedule.timeSlot?.label || "—"}
+                        </span>
+
+                        <span>
+                          Session Type:{" "}
+                          {formatSessionTypeName(
+                            enrollment.schedule.sessionType?.name,
+                          )}
+                        </span>
+
+                        {enrollment.location ? (
+                          <span>Location: {enrollment.location}</span>
+                        ) : null}
+
+                        <span>
+                          {isCompleted ? "Completed ✓" : "In Progress"}
+                        </span>
+                      </div>
+                    </div>
 
                     <div className="stack">
-                      <strong>
-                        {enrollment.course?.title || "Untitled Course"}
-                      </strong>
-                      <span>Final Price: ${enrollment.totalPrice}</span>
-                      <span>
-                        Weekly Schedule:{" "}
-                        {enrollment.schedule.weeklySchedule?.label || "—"}
-                      </span>
-                      <span>
-                        Time Slot: {enrollment.schedule.timeSlot?.label || "—"}
-                      </span>
-                      <span>
-                        Session Type:{" "}
-                        {enrollment.schedule.sessionType?.name || "—"}
-                      </span>
-                      {enrollment.location ? (
-                        <span>Location: {enrollment.location}</span>
-                      ) : null}
-                    </div>
-                  </div>
+                      <span>Progress: {enrollment.progress}%</span>
 
-                  <div className="stack">
-                    <span>Progress: {enrollment.progress}%</span>
-                    <div className="progress-bar-shell">
-                      <div
-                        className="progress-bar-fill"
-                        style={{ width: `${enrollment.progress}%` }}
-                      />
+                      <div className="progress-bar-shell">
+                        <div
+                          className="progress-bar-fill"
+                          style={{ width: `${enrollment.progress}%` }}
+                        />
+                      </div>
+
+                      <Link
+                        to={ROUTES.courseDetails(enrollment.course?.id)}
+                        className="button button-secondary"
+                        onClick={closeEnrolledSidebar}
+                      >
+                        View Course
+                      </Link>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

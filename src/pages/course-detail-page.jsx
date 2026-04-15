@@ -1,15 +1,45 @@
+import toast from "react-hot-toast";
 import { Link, useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 
 import { ROUTES } from "../shared/constants/routes";
 import { QUERY_KEYS } from "../shared/api/query-keys";
 import { getCourseDetails } from "../features/courses/api/courses.api";
+import {
+  completeEnrollment,
+  deleteEnrollment,
+  rateCourse,
+} from "../features/courses/api/course-actions.api";
 import { Loader } from "../shared/components/ui/loader";
 import { ErrorState } from "../shared/components/ui/error-state";
 import { CourseSchedulePanel } from "../features/courses/components/course-schedule-panel";
+import { CourseProgressPanel } from "../features/courses/components/course-progress-panel";
+import { RatingForm } from "../features/courses/components/rating-form";
+
+function getApiErrorMessage(error, fallbackMessage) {
+  const validationErrors = error?.response?.data?.errors;
+  const firstValidationEntry = validationErrors
+    ? Object.values(validationErrors)[0]
+    : null;
+
+  if (Array.isArray(firstValidationEntry) && firstValidationEntry[0]) {
+    return firstValidationEntry[0];
+  }
+
+  return error?.response?.data?.message || fallbackMessage;
+}
+
+function isCompletedEnrollment(enrollment) {
+  return (
+    Boolean(enrollment?.completedAt) || Number(enrollment?.progress ?? 0) >= 100
+  );
+}
 
 export function CourseDetailPage() {
   const { courseId } = useParams();
+  const queryClient = useQueryClient();
+  const [schedulePanelResetKey, setSchedulePanelResetKey] = useState(0);
 
   const {
     data: course,
@@ -21,6 +51,91 @@ export function CourseDetailPage() {
     queryFn: () => getCourseDetails(courseId),
     enabled: Boolean(courseId),
   });
+
+  const completeMutation = useMutation({
+    mutationFn: (enrollmentId) => completeEnrollment(enrollmentId),
+  });
+
+  const retakeMutation = useMutation({
+    mutationFn: (enrollmentId) => deleteEnrollment(enrollmentId),
+  });
+
+  const ratingMutation = useMutation({
+    mutationFn: (rating) => rateCourse(courseId, rating),
+  });
+
+  const invalidateEnrollmentViews = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.COURSE_DETAILS(courseId),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.IN_PROGRESS_COURSES,
+      }),
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.ENROLLMENTS,
+      }),
+    ]);
+  };
+
+  const handleCompleteCourse = async () => {
+    const enrollmentId = course?.enrollment?.id;
+
+    if (!enrollmentId) {
+      toast.error("No active enrollment found for this course.");
+      return;
+    }
+
+    try {
+      await completeMutation.mutateAsync(enrollmentId);
+      toast.success("Course marked as completed");
+      await invalidateEnrollmentViews();
+    } catch (mutationError) {
+      toast.error(
+        getApiErrorMessage(mutationError, "Failed to complete the course."),
+      );
+    }
+  };
+
+  const handleRetakeCourse = async () => {
+    const enrollmentId = course?.enrollment?.id;
+
+    if (!enrollmentId) {
+      toast.error("No active enrollment found for retake.");
+      return;
+    }
+
+    try {
+      await retakeMutation.mutateAsync(enrollmentId);
+
+      setSchedulePanelResetKey((previous) => previous + 1);
+      await invalidateEnrollmentViews();
+
+      toast.success(
+        "Enrollment removed. The page is back in the not-enrolled state. Choose a fresh schedule and enroll again.",
+      );
+    } catch (mutationError) {
+      toast.error(
+        getApiErrorMessage(mutationError, "Failed to reset the enrollment."),
+      );
+    }
+  };
+
+  const handleSubmitRating = async (rating) => {
+    try {
+      await ratingMutation.mutateAsync(rating);
+
+      await queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.COURSE_DETAILS(courseId),
+      });
+
+      toast.success("Rating submitted successfully");
+    } catch (mutationError) {
+      toast.error(
+        getApiErrorMessage(mutationError, "Failed to submit your rating."),
+      );
+    }
+  };
 
   if (isLoading) {
     return <Loader label="Loading course details..." />;
@@ -40,15 +155,22 @@ export function CourseDetailPage() {
             : "Please try again."
         }
         action={
-          <Link to={ROUTES.COURSES} className="button button-primary">
-            Browse Courses
-          </Link>
+          <div className="button-row">
+            <Link to={ROUTES.COURSES} className="button button-primary">
+              Browse Courses
+            </Link>
+
+            <Link to={ROUTES.HOME} className="button button-secondary">
+              Go Back Home
+            </Link>
+          </div>
         }
       />
     );
   }
 
   const enrollment = course.enrollment;
+  const isCompleted = isCompletedEnrollment(enrollment);
 
   return (
     <div className="course-detail-layout">
@@ -74,16 +196,20 @@ export function CourseDetailPage() {
             <strong>Category:</strong>{" "}
             {course.category?.name || "Uncategorized"}
           </div>
+
           <div className="info-card">
             <strong>Topic:</strong> {course.topic?.name || "Unknown Topic"}
           </div>
+
           <div className="info-card">
             <strong>Instructor:</strong>{" "}
             {course.instructor?.name || "Unknown Instructor"}
           </div>
+
           <div className="info-card">
             <strong>Duration:</strong> {course.durationWeeks} weeks
           </div>
+
           <div className="info-card">
             <strong>Base Price:</strong> ${course.basePrice}
           </div>
@@ -95,12 +221,8 @@ export function CourseDetailPage() {
           <>
             <h2>Enrollment Panel</h2>
 
-            <div className="state-note">
-              Schedule browsing is public on Day 4. Only the final enroll submit
-              action is protected.
-            </div>
-
             <CourseSchedulePanel
+              key={schedulePanelResetKey}
               courseId={course.id}
               basePrice={course.basePrice}
               onEnrollSuccess={() => {}}
@@ -110,49 +232,28 @@ export function CourseDetailPage() {
           <>
             <div className="enrolled-badge">Enrolled ✓</div>
 
-            <div className="stack">
-              <div className="info-card">
-                <strong>Selected Weekly Schedule:</strong>{" "}
-                {enrollment.schedule.weeklySchedule?.label || "—"}
-              </div>
+            <CourseProgressPanel
+              enrollment={enrollment}
+              onComplete={handleCompleteCourse}
+              onRetake={handleRetakeCourse}
+              isCompleting={completeMutation.isPending}
+              isRetaking={retakeMutation.isPending}
+            />
 
-              <div className="info-card">
-                <strong>Selected Time Slot:</strong>{" "}
-                {enrollment.schedule.timeSlot?.label || "—"}
-              </div>
+            <div className="divider-line" />
 
-              <div className="info-card">
-                <strong>Selected Session Type:</strong>{" "}
-                {enrollment.schedule.sessionType?.name || "—"}
-              </div>
-
-              {enrollment.location ? (
-                <div className="info-card">
-                  <strong>Location:</strong> {enrollment.location}
+            {isCompleted ? (
+              course.isRated ? (
+                <div className="state-note">
+                  You've already rated this course
                 </div>
-              ) : null}
-
-              <div className="summary-card">
-                <p>
-                  <strong>Total Price:</strong> ${enrollment.totalPrice}
-                </p>
-                <p>
-                  <strong>Enrollment ID:</strong> {enrollment.id}
-                </p>
-              </div>
-
-              <div>
-                <p>
-                  <strong>Course Progress:</strong> {enrollment.progress}%
-                </p>
-                <div className="progress-bar-shell">
-                  <div
-                    className="progress-bar-fill"
-                    style={{ width: `${enrollment.progress}%` }}
-                  />
-                </div>
-              </div>
-            </div>
+              ) : (
+                <RatingForm
+                  onSubmit={handleSubmitRating}
+                  isSubmitting={ratingMutation.isPending}
+                />
+              )
+            ) : null}
           </>
         )}
       </aside>

@@ -155,48 +155,57 @@ export function DashboardPage() {
           ) : isInProgressError ? (
             <ErrorState title="Failed to load in-progress courses" />
           ) : (
-            <div className="featured-grid">
-              {displayedInProgressCourses.map((enrollment) => (
-                <article key={enrollment.id} className="featured-card">
-                  {enrollment.course?.image ? (
-                    <img
-                      src={enrollment.course.image}
-                      alt={enrollment.course.title}
-                      className="card-image"
-                    />
-                  ) : (
-                    <div className="featured-image-placeholder">
-                      Course Image
-                    </div>
-                  )}
-
-                  <h3>{enrollment.course?.title || "Untitled Course"}</h3>
-
-                  <p>
-                    <strong>Instructor:</strong>{" "}
-                    {enrollment.course?.instructor?.name ||
-                      "Unknown Instructor"}
-                  </p>
-
-                  <div className="stack">
-                    <span>{enrollment.progress}% Complete</span>
-                    <div className="progress-bar-shell">
-                      <div
-                        className="progress-bar-fill"
-                        style={{ width: `${enrollment.progress}%` }}
+            <>
+              <div className="featured-grid">
+                {displayedInProgressCourses.map((enrollment) => (
+                  <article key={enrollment.id} className="featured-card">
+                    {enrollment.course?.image ? (
+                      <img
+                        src={enrollment.course.image}
+                        alt={enrollment.course.title}
+                        className="card-image"
                       />
-                    </div>
-                  </div>
+                    ) : (
+                      <div className="featured-image-placeholder">
+                        Course Image
+                      </div>
+                    )}
 
-                  <Link
-                    to={ROUTES.courseDetails(enrollment.course?.id)}
-                    className="button button-primary"
-                  >
-                    Continue
-                  </Link>
-                </article>
-              ))}
-            </div>
+                    <h3>{enrollment.course?.title || "Untitled Course"}</h3>
+
+                    <p>
+                      <strong>Instructor:</strong>{" "}
+                      {enrollment.course?.instructor?.name ||
+                        "Unknown Instructor"}
+                    </p>
+
+                    <div className="stack">
+                      <span>{enrollment.progress}% Complete</span>
+
+                      <div className="progress-bar-shell">
+                        <div
+                          className="progress-bar-fill"
+                          style={{ width: `${enrollment.progress}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <Link
+                      to={ROUTES.courseDetails(enrollment.course?.id)}
+                      className="button button-primary"
+                    >
+                      Continue
+                    </Link>
+                  </article>
+                ))}
+              </div>
+
+              <div className="state-note">
+                After a successful completion, a course may disappear from this
+                section. If no in-progress enrollments remain, the entire
+                Continue Learning section becomes hidden.
+              </div>
+            </>
           )}
         </section>
       ) : null}
