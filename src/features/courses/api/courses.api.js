@@ -88,6 +88,30 @@ function normalizeCourse(raw = {}) {
   };
 }
 
+function normalizeCategory(raw = {}) {
+  return {
+    id: raw.id ?? null,
+    name: raw.name ?? "",
+    icon: raw.icon ?? "",
+  };
+}
+
+function normalizeTopic(raw = {}) {
+  return {
+    id: raw.id ?? null,
+    name: raw.name ?? "",
+    categoryId: raw.categoryId ?? null,
+  };
+}
+
+function normalizeInstructor(raw = {}) {
+  return {
+    id: raw.id ?? null,
+    name: raw.name ?? "",
+    avatar: raw.avatar ?? "",
+  };
+}
+
 function normalizePaginatedCourses(responseData) {
   const payload = responseData?.data ?? responseData;
 
@@ -144,6 +168,16 @@ function buildCoursesQueryString(params = {}) {
   return searchParams.toString();
 }
 
+function buildTopicsQueryString(categoryIds = []) {
+  const searchParams = new URLSearchParams();
+
+  categoryIds.forEach((categoryId) => {
+    searchParams.append("categories[]", String(categoryId));
+  });
+
+  return searchParams.toString();
+}
+
 export async function getFeaturedCourses() {
   const response = await axiosInstance.get("/courses/featured");
   const payload = response.data?.data ?? response.data;
@@ -166,44 +200,48 @@ export async function getCourseDetails(courseId) {
   return normalizeCourse(payload);
 }
 
-export async function getCourseFilterOptions() {
-  const categoriesMap = new Map();
-  const topicsMap = new Map();
-  const instructorsMap = new Map();
+export async function getCategories() {
+  const response = await axiosInstance.get("/categories");
+  const payload = response.data?.data ?? response.data;
+  const items = Array.isArray(payload) ? payload : [];
 
-  let page = 1;
-  let lastPage = 1;
+  return items
+    .map(normalizeCategory)
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
 
-  do {
-    const response = await getCourses({
-      page,
-      sort: "newest",
-    });
+export async function getTopics(categoryIds = []) {
+  const queryString = buildTopicsQueryString(categoryIds);
+  const url = queryString ? `/topics?${queryString}` : "/topics";
 
-    response.items.forEach((course) => {
-      if (course.category?.id) {
-        categoriesMap.set(course.category.id, course.category);
-      }
+  const response = await axiosInstance.get(url);
+  const payload = response.data?.data ?? response.data;
+  const items = Array.isArray(payload) ? payload : [];
 
-      if (course.topic?.id) {
-        topicsMap.set(course.topic.id, course.topic);
-      }
+  return items.map(normalizeTopic).sort((a, b) => a.name.localeCompare(b.name));
+}
 
-      if (course.instructor?.id) {
-        instructorsMap.set(course.instructor.id, course.instructor);
-      }
-    });
+export async function getInstructors() {
+  const response = await axiosInstance.get("/instructors");
+  const payload = response.data?.data ?? response.data;
+  const items = Array.isArray(payload) ? payload : [];
 
-    lastPage = response.meta.lastPage;
-    page += 1;
-  } while (page <= lastPage);
+  return items
+    .map(normalizeInstructor)
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
 
-  const sortByName = (a, b) => a.name.localeCompare(b.name);
+export async function getCourseFilterOptions(categoryIds = []) {
+  const [categories, topics, instructors] = await Promise.all([
+    getCategories(),
+    getTopics(categoryIds),
+    getInstructors(),
+  ]);
 
   return {
-    categories: Array.from(categoriesMap.values()).sort(sortByName),
-    topics: Array.from(topicsMap.values()).sort(sortByName),
-    instructors: Array.from(instructorsMap.values()).sort(sortByName),
+    categories,
+    topics,
+    instructors,
   };
 }
 

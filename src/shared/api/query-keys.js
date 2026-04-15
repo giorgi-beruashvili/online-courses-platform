@@ -1,6 +1,9 @@
 export const QUERY_KEYS = {
   FEATURED_COURSES: ["featured-courses"],
-  COURSE_FILTER_OPTIONS: ["course-filter-options"],
+  COURSE_FILTER_OPTIONS: (categoryIds = []) => [
+    "course-filter-options",
+    { categories: categoryIds },
+  ],
   COURSES: (params) => ["courses", params],
   COURSE_DETAILS: (courseId) => ["course-details", courseId],
   COURSE_SCHEDULES: (courseId) => ["course-schedules", courseId],

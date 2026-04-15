@@ -31,21 +31,14 @@ export function CoursesPage() {
     isLoading: isLoadingFilterOptions,
     isError: isFilterOptionsError,
   } = useQuery({
-    queryKey: QUERY_KEYS.COURSE_FILTER_OPTIONS,
-    queryFn: getCourseFilterOptions,
+    queryKey: QUERY_KEYS.COURSE_FILTER_OPTIONS(selectedCategories),
+    queryFn: () => getCourseFilterOptions(selectedCategories),
   });
 
-  const visibleTopics = useMemo(() => {
-    const allTopics = filterOptions?.topics ?? [];
-
-    if (selectedCategories.length === 0) {
-      return allTopics;
-    }
-
-    return allTopics.filter((topic) =>
-      selectedCategories.includes(topic.categoryId),
-    );
-  }, [filterOptions, selectedCategories]);
+  const visibleTopics = useMemo(
+    () => filterOptions?.topics ?? [],
+    [filterOptions],
+  );
 
   useEffect(() => {
     setSelectedTopics((previousTopics) =>
@@ -90,6 +83,9 @@ export function CoursesPage() {
     perPage: 0,
     total: 0,
   };
+
+  const categories = filterOptions?.categories ?? [];
+  const instructors = filterOptions?.instructors ?? [];
 
   const pageNumbers = Array.from(
     { length: meta.lastPage || 1 },
@@ -152,7 +148,7 @@ export function CoursesPage() {
             <div className="filter-section">
               <h3>Categories</h3>
 
-              {filterOptions.categories.map((category) => (
+              {categories.map((category) => (
                 <label key={category.id} className="filter-row">
                   <input
                     type="checkbox"
@@ -180,14 +176,15 @@ export function CoursesPage() {
 
               <div className="state-note">
                 If no category is selected, all topics are shown. If one or more
-                categories are selected, only matching topics are shown.
+                categories are selected, topics are loaded only for the selected
+                categories.
               </div>
             </div>
 
             <div className="filter-section">
               <h3>Instructors</h3>
 
-              {filterOptions.instructors.map((instructor) => (
+              {instructors.map((instructor) => (
                 <label key={instructor.id} className="filter-person-row">
                   {instructor.avatar ? (
                     <img
@@ -225,12 +222,6 @@ export function CoursesPage() {
             <div className="state-note">
               Search is intentionally counted as an active filter in this Day 4
               version.
-            </div>
-
-            <div className="state-note">
-              Because the API does not expose a dedicated filter metadata
-              endpoint, these filter options are derived from a stable
-              full-catalog source, not from only the current paginated page.
             </div>
           </>
         )}
