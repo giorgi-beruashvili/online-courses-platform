@@ -135,10 +135,12 @@ vercel --prod
 
 ## Live Demo
 
-- Live URL: `[add-your-live-link-here]`
-- Repository URL: `[add-your-public-repo-link-here]`
+- Live URL: [Open the app](https://online-courses-platform-psi.vercel.app)
+- Repository URL: [View the repository](https://github.com/giorgi-beruashvili/online-courses-platform)
 
-These placeholders must be replaced with real values after deployment and before final submission.
+## Deployment
+
+Deployed on Vercel.
 
 ## Scope Notes / Trade-offs
 
