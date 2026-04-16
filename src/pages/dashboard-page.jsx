@@ -15,6 +15,7 @@ import {
 import { Loader } from "../shared/components/ui/loader";
 import { ErrorState } from "../shared/components/ui/error-state";
 import { EmptyState } from "../shared/components/ui/empty-state";
+import HeroSlider from "../shared/components/hero-slider/hero-slider";
 
 export function DashboardPage() {
   const { isAuthenticated } = useAuth();
@@ -67,6 +68,8 @@ export function DashboardPage() {
 
   return (
     <div className="stack-lg">
+      <HeroSlider />
+
       <section className="section-card">
         <div className="section-header">
           <h1>Start Learning Today</h1>

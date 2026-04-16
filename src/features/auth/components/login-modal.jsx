@@ -89,8 +89,8 @@ export function LoginModal({ open }) {
           handleClose();
         }
       }}
-      title="Log In"
-      description="Day 3: real API submit with canonical user hydration from GET /me."
+      title="Create Account"
+      description="Join and start learning today"
     >
       <form className="stack" onSubmit={handleSubmit(onSubmit)}>
         <label className="field">
@@ -124,7 +124,7 @@ export function LoginModal({ open }) {
           className="button button-primary"
           disabled={isSubmitting || !isValid}
         >
-          {isSubmitting ? "Logging In..." : "Log In"}
+          {isSubmitting ? "Logging In..." : "Next"}
         </button>
 
         <button
