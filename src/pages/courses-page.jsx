@@ -173,12 +173,6 @@ export function CoursesPage() {
                   <span>{topic.name}</span>
                 </label>
               ))}
-
-              <div className="state-note">
-                If no category is selected, all topics are shown. If one or more
-                categories are selected, topics are loaded only for the selected
-                categories.
-              </div>
             </div>
 
             <div className="filter-section">
@@ -217,11 +211,6 @@ export function CoursesPage() {
               </button>
 
               <p>{activeFiltersCount} filters active</p>
-            </div>
-
-            <div className="state-note">
-              Search is intentionally counted as an active filter in this Day 4
-              version.
             </div>
           </>
         )}
@@ -328,11 +317,6 @@ export function CoursesPage() {
           >
             Next
           </button>
-        </div>
-
-        <div className="state-note">
-          API pagination is now interactive. Page resets to `1` on search,
-          category, topic, instructor, or sort changes.
         </div>
       </section>
     </div>

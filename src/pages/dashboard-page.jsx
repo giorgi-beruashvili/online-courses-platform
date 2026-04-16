@@ -202,12 +202,6 @@ export function DashboardPage() {
                   </article>
                 ))}
               </div>
-
-              <div className="state-note">
-                After a successful completion, a course may disappear from this
-                section. If no in-progress enrollments remain, the entire
-                Continue Learning section becomes hidden.
-              </div>
             </>
           )}
         </section>
