@@ -39,17 +39,23 @@ export function EnrolledCoursesSidebar() {
     enabled: isEnrolledSidebarOpen && isAuthenticated,
   });
 
+  const activeEnrollments = useMemo(() => {
+    return enrollments.filter(
+      (item) => !item.completedAt && Number(item.progress ?? 0) < 100,
+    );
+  }, [enrollments]);
+
   const summary = useMemo(() => {
-    const totalCombinedPrice = enrollments.reduce(
+    const totalCombinedPrice = activeEnrollments.reduce(
       (sum, item) => sum + Number(item.totalPrice ?? 0),
       0,
     );
 
     return {
       totalCombinedPrice,
-      totalCount: enrollments.length,
+      totalCount: activeEnrollments.length,
     };
-  }, [enrollments]);
+  }, [activeEnrollments]);
 
   if (!isEnrolledSidebarOpen || !isAuthenticated) {
     return null;
@@ -75,10 +81,10 @@ export function EnrolledCoursesSidebar() {
           <Loader label="Loading enrolled courses..." />
         ) : isError ? (
           <ErrorState title="Failed to load enrolled courses" />
-        ) : enrollments.length === 0 ? (
+        ) : activeEnrollments.length === 0 ? (
           <EmptyState
-            title="Your learning journey starts here!"
-            message="Browse courses to get started."
+            title="No Enrolled Courses Yet"
+            message="Your learning journey starts here! Browse courses to get started."
             action={
               <Link
                 to={ROUTES.COURSES}
@@ -101,11 +107,7 @@ export function EnrolledCoursesSidebar() {
             </div>
 
             <div className="sidebar-list">
-              {enrollments.map((enrollment) => {
-                const isCompleted =
-                  Boolean(enrollment.completedAt) ||
-                  Number(enrollment.progress) >= 100;
-
+              {activeEnrollments.map((enrollment) => {
                 return (
                   <div key={enrollment.id} className="sidebar-item-card">
                     <div className="sidebar-item-top">
@@ -151,9 +153,7 @@ export function EnrolledCoursesSidebar() {
                           <span>Location: {enrollment.location}</span>
                         ) : null}
 
-                        <span>
-                          {isCompleted ? "Completed ✓" : "In Progress"}
-                        </span>
+                        <span>In Progress</span>
                       </div>
                     </div>
 
@@ -172,7 +172,7 @@ export function EnrolledCoursesSidebar() {
                         className="button button-secondary"
                         onClick={closeEnrolledSidebar}
                       >
-                        View Course
+                        View
                       </Link>
                     </div>
                   </div>
