@@ -137,6 +137,13 @@ export function CourseDetailPage() {
     }
   };
 
+  const handleEnrollSuccess = async () => {
+    await queryClient.refetchQueries({
+      queryKey: QUERY_KEYS.COURSE_DETAILS(courseId),
+      exact: true,
+    });
+  };
+
   if (isLoading) {
     return <Loader label="Loading course details..." />;
   }
@@ -225,7 +232,7 @@ export function CourseDetailPage() {
               key={schedulePanelResetKey}
               courseId={course.id}
               basePrice={course.basePrice}
-              onEnrollSuccess={() => {}}
+              onEnrollSuccess={handleEnrollSuccess}
             />
           </>
         ) : (
