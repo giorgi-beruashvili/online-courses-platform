@@ -11,19 +11,19 @@ export function EnrollmentConflictModal({
     <BaseModal
       open={open}
       onOpenChange={(nextOpen) => {
-        if (!nextOpen) {
+        if (!nextOpen && !isSubmitting) {
           onCancel();
         }
       }}
-      title="Schedule Conflict"
-      description="You are already enrolled in another course with the same schedule."
+      title="Enrollment Confirmed!"
+      description=""
     >
       <div className="stack">
         {(conflicts ?? []).map((conflict) => (
           <div key={conflict.conflictingEnrollmentId} className="conflict-card">
             <p>
               You are already enrolled in{" "}
-              <strong>{conflict.conflictingCourseName}</strong> with the same
+              <strong>“{conflict.conflictingCourseName}”</strong> with the same
               schedule:
             </p>
             <p>{conflict.schedule}</p>
@@ -34,19 +34,19 @@ export function EnrollmentConflictModal({
           <button
             type="button"
             className="button button-secondary"
-            onClick={onCancel}
+            onClick={onContinue}
             disabled={isSubmitting}
           >
-            Cancel
+            {isSubmitting ? "Continuing..." : "Continue Anyway"}
           </button>
 
           <button
             type="button"
             className="button button-primary"
-            onClick={onContinue}
+            onClick={onCancel}
             disabled={isSubmitting}
           >
-            {isSubmitting ? "Continuing..." : "Continue Anyway"}
+            Cancel
           </button>
         </div>
       </div>
